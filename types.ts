@@ -1,39 +1,46 @@
-export enum Stage {
-  Strangers = 1,
-  Friends = 2,
-  CloseFriends = 3,
-}
-
-export enum GameState {
-  Setup = 'SETUP',
-  Wheel = 'WHEEL',
-  Individual = 'INDIVIDUAL',
-  RPS = 'RPS',
-  Group = 'GROUP',
-}
-
-export enum RoundType {
-  Individual = 'Individual',
-  RPS = 'RPS',
-  Group = 'GroupGame',
-}
+export type Stage = 'S1' | 'S2' | 'S3';
+export type Difficulty = 1 | 2 | 3;
+export type PromptType = 'question' | 'activity' | 'pointing';
+export type GameState = 'wheel' | 'individual' | 'rps' | 'group';
 
 export interface Player {
   id: string;
   name: string;
-  skipTokens: number;
+  participationCount: number;
+  skipToken: boolean;
+  score?: number; // Optional tracking
 }
 
-export interface RpsState {
-  playerA: Player;
-  playerB: Player;
-  stage: 'VERSUS' | 'RESULT' | 'PUNISHMENT';
-  winner?: Player;
-  loser?: Player;
-  punishment?: string;
+export interface Prompt {
+  id: string;
+  text: string;
+  stage: Stage;
+  difficulty: Difficulty;
+  type: PromptType;
+  tags?: string[];
 }
 
-export interface GroupState {
-  type: 'ACTIVITY' | 'POINTING';
-  content: string;
+export interface Config {
+  enablePreRoll: boolean;
+  useWeightedFairness: boolean;
+  useDifficultyBalancing: boolean;
+  stageLock: boolean;
+}
+
+export interface SessionData {
+  players: Player[];
+  stage: Stage;
+  history: {
+    difficulty: number[]; // Last N difficulties
+    roundTypes: { Individual: number; RPS: number; Group: number };
+  };
+}
+
+export interface RoundContext {
+  selectedPlayerId: string | null;
+  opponentPlayerId: string | null; // For RPS
+  roundType: 'Individual' | 'RPS' | 'Group';
+  currentPrompt: Prompt | null;
+  preRollOptions: Prompt[];
+  isPreRollSelection: boolean;
 }

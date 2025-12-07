@@ -10,6 +10,7 @@
     "deploy": "vite build && touch dist/.nojekyll && git add dist -f && git commit -m 'Deploy to GitHub Pages' && git subtree push --prefix dist origin gh-pages"
   },
   "dependencies": {
+    "lucide-react": "^0.556.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
