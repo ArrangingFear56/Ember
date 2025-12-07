@@ -94,14 +94,6 @@ export const Wheel: React.FC<WheelProps> = ({ players, onSpinEnd, winner, isSpin
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
     ctx.stroke();
 
-    // Pointer
-    ctx.beginPath();
-    ctx.fillStyle = '#ffffff';
-    // Make pointer sharp and modern
-    ctx.moveTo(centerX + 30, centerY - 12); 
-    ctx.lineTo(centerX + 65, centerY);     
-    ctx.lineTo(centerX + 30, centerY + 12); 
-    ctx.fill();
     // Add shadow to pointer
     ctx.shadowColor = "rgba(0,0,0,0.2)";
     ctx.shadowBlur = 15;
