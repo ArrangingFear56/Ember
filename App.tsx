@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Settings, UserPlus, Users, Trophy, Hand, RotateCcw, X, Info, Volume2, Sparkles, AlertCircle, Shuffle, ArrowRight, Play } from 'lucide-react';
+import { Settings, UserPlus, Users, Trophy, Hand, RotateCcw, X, Info, Volume2, VolumeX, Sparkles, AlertCircle, Shuffle, ArrowRight, Play } from 'lucide-react';
 import { Wheel } from './components/Wheel';
 import { Player, Stage, GameState, RoundContext, Config, Prompt } from './types';
 import { 
@@ -10,6 +10,7 @@ import {
   getDifficultyColor,
   getStageName
 } from './utils';
+import { useTTS } from './hooks/useTTS';
 
 // --- Default Data ---
 const DEFAULT_CONFIG: Config = {
@@ -90,6 +91,10 @@ const App: React.FC = () => {
   const [isMiniSpinning, setIsMiniSpinning] = useState(false);
   const [miniSpinWinner, setMiniSpinWinner] = useState<Player | null>(null);
 
+  // Audio State
+  const [isMuted, setIsMuted] = useState(false);
+  const { speak, stop: stopTTS, resumeContext } = useTTS();
+
   // --- Persistence ---
   useEffect(() => {
     const saved = localStorage.getItem('ember_v1_session');
@@ -138,6 +143,7 @@ const App: React.FC = () => {
 
   const handleStartGame = () => {
       if (players.length < 2) return;
+      resumeContext(); // Initialize audio context
       setHasGameStarted(true);
   };
 
@@ -148,6 +154,8 @@ const App: React.FC = () => {
       alert("Need at least 2 players!");
       return;
     }
+    resumeContext(); // Ensure audio context is active
+    stopTTS(); // Stop any pending speech
 
     // 1. Select Player
     const selected = selectWeightedPlayer(players);
@@ -171,9 +179,21 @@ const App: React.FC = () => {
     setIsSpinning(false);
     updatePlayerParticipation(roundContext.selectedPlayerId!);
 
+    const winner = players.find(p => p.id === roundContext.selectedPlayerId);
+    
+    // Announce Winner if not muted
+    if (!isMuted && winner) {
+        speak(`It's ${winner.name}'s turn!`);
+    }
+
     if (roundContext.roundType === 'Individual') {
       setupIndividualRound();
     } else if (roundContext.roundType === 'RPS') {
+      const opponent = players.find(p => p.id === roundContext.opponentPlayerId);
+      if (!isMuted && winner && opponent) {
+         // Queue this after the winner announcement essentially (or interrupt it, which is fine)
+         setTimeout(() => speak(`Rock Paper Scissors! ${winner.name} versus ${opponent.name}.`), 1500);
+      }
       setGameState('rps');
     } else {
       setupGroupRound();
@@ -187,7 +207,12 @@ const App: React.FC = () => {
     if (config.enablePreRoll) {
       setRoundContext(prev => ({ ...prev, preRollOptions: prompts, isPreRollSelection: true, currentPrompt: null }));
     } else {
-      setRoundContext(prev => ({ ...prev, currentPrompt: prompts[0], isPreRollSelection: false }));
+      const p = prompts[0];
+      setRoundContext(prev => ({ ...prev, currentPrompt: p, isPreRollSelection: false }));
+      // Automatically read prompt if selected immediately
+      if (!isMuted && p) {
+         setTimeout(() => speak(p.text), 1500); 
+      }
     }
     setGameState('individual');
   };
@@ -202,9 +227,13 @@ const App: React.FC = () => {
 
     setRoundContext(prev => ({ ...prev, currentPrompt: prompt, isPreRollSelection: false }));
     setGameState('group');
+    if (!isMuted && prompt) {
+        setTimeout(() => speak(prompt.text), 1500);
+    }
   };
 
   const completeRound = (difficulty: number) => {
+    stopTTS();
     setRoundHistory(prev => ({
       difficulty: [...prev.difficulty.slice(-4), difficulty], // Keep last 5
       roundTypes: {
@@ -218,6 +247,9 @@ const App: React.FC = () => {
 
   const handlePreRollSelect = (prompt: Prompt) => {
     setRoundContext(prev => ({ ...prev, currentPrompt: prompt, isPreRollSelection: false }));
+    if (!isMuted) {
+        speak(prompt.text);
+    }
   };
 
   const handleRPSResult = (winnerId: string | 'draw') => {
@@ -229,12 +261,16 @@ const App: React.FC = () => {
     
     const activity = getPromptsForRound('Group', stage, [], 1)[0]; 
     setRoundContext(prev => ({ ...prev, currentPrompt: activity, roundType: 'Individual' })); 
-    setGameState('individual'); 
+    setGameState('individual');
+    if (!isMuted && activity) {
+        speak(activity.text);
+    }
   };
 
   // --- Mini Spin Logic (Spin Again) ---
   const handleMiniSpinStart = () => {
     if (players.length < 2) return;
+    resumeContext();
     // Don't pick the current selected player if possible
     const candidates = players.filter(p => p.id !== roundContext.selectedPlayerId);
     // Fallback if only 1 player or filtering removes everyone (unlikely in group settings)
@@ -250,6 +286,9 @@ const App: React.FC = () => {
 
   const onMiniSpinStop = () => {
       setIsMiniSpinning(false);
+      if(miniSpinWinner && !isMuted) {
+          speak(miniSpinWinner.name);
+      }
   };
 
   const closeMiniSpin = () => {
@@ -267,6 +306,21 @@ const App: React.FC = () => {
             <h1 className="text-xl font-black tracking-tight bg-gradient-to-r from-amber-200 to-orange-400 bg-clip-text text-transparent">Ember</h1>
         </div>
         <div className="flex gap-2">
+           {/* Mute Toggle */}
+           <button 
+             onClick={() => {
+                 if (isMuted) {
+                     resumeContext();
+                 } else {
+                     stopTTS();
+                 }
+                 setIsMuted(!isMuted);
+             }} 
+             className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 text-slate-400 transition-colors"
+           >
+             {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+           </button>
+
            <button onClick={() => setShowSettings(!showSettings)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 text-slate-400 transition-colors">
              <Settings size={20} />
            </button>

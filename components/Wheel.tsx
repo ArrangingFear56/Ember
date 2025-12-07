@@ -94,10 +94,6 @@ export const Wheel: React.FC<WheelProps> = ({ players, onSpinEnd, winner, isSpin
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
     ctx.stroke();
 
-    // Add shadow to pointer
-    ctx.shadowColor = "rgba(0,0,0,0.2)";
-    ctx.shadowBlur = 15;
-
   }, [players]);
 
   // Handle spin logic
@@ -110,7 +106,12 @@ export const Wheel: React.FC<WheelProps> = ({ players, onSpinEnd, winner, isSpin
       const arcSize = 360 / players.length;
       
       const targetSegmentAngle = (winnerIndex * arcSize) + (arcSize / 2); // Center of segment
-      const totalRotation = 360 * 5 + (360 - targetSegmentAngle); // 5 full spins + alignment
+      
+      // Calculate rotation needed to bring the target segment to 0 degrees (3 o'clock)
+      // Since we rotate negatively (CCW) in CSS, we need a positive rotation value here
+      // equal to the target angle. 
+      // Example: Target at 10 deg. Rotate -10 deg. Rotation state should include +10.
+      const totalRotation = 360 * 5 + targetSegmentAngle; 
       
       setRotation(prev => prev + totalRotation);
 
