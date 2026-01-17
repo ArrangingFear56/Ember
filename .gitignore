@@ -25,3 +25,4 @@ dist-ssr
 .vs/Ember.slnx/FileContentIndex/f60677ad-49e5-4df1-8cf7-93b85b367d62.vsidx
 .vs/ProjectSettings.json
 .vs/slnx.sqlite
+*.vsidx
